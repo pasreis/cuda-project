@@ -17,13 +17,13 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildProperties="" id="com.nvidia.cuda.ide.toolchain.nine_zero.1897046956" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
+				<configuration artifactName="${ProjName}" buildProperties="" description="" id="com.nvidia.cuda.ide.toolchain.nine_zero.1897046956" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
 					<folderInfo id="com.nvidia.cuda.ide.toolchain.nine_zero.1897046956.940000429" name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.nine_zero.1807510899" name="CUDA Toolkit 10.0" superClass="com.nvidia.cuda.ide.toolchain.nine_zero">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.244819438" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
-							<builder id="com.nvidia.cuda.ide.builder.750903688" managedBuildOn="false" name="CUDA Toolkit 10.0 Builder.Default" superClass="com.nvidia.cuda.ide.builder"/>
+							<builder buildPath="${workspace_loc:/cuda-project}/Default" id="com.nvidia.cuda.ide.builder.750903688" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CUDA Toolkit 10.0 Builder" superClass="com.nvidia.cuda.ide.builder"/>
 							<tool id="nvcc.compiler.base.337116155" name="NVCC Compiler" superClass="nvcc.compiler.base">
-								<option id="nvcc.compiler.pic.898238810" superClass="nvcc.compiler.pic"/>
+								<option id="nvcc.compiler.pic.898238810" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<inputType id="nvcc.compiler.input.cu.655686409" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.2057906167" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.1237985333" superClass="nvcc.compiler.input.c"/>
@@ -58,4 +58,10 @@
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Default">
+			<resource resourceType="PROJECT" workspacePath="/cuda-project"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>
