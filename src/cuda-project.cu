@@ -66,6 +66,34 @@ void doMulMatrix(float* a, float* b, float* c, int rowsA, int colsA, int colsB) 
 	}
 }
 
+__global__
+void doDotProduct(float* a, float* b, float* c, int size) {
+	int index = threadIdx.x + blockIdx.x * blockDim.x;
+	int stride = blockDim.x * blockDim.x;
+
+	__shared__ float partialResult[BLOCK_SIZE * 2];
+
+	unsigned int t = threadIdx.x;
+	float tmp = 0.0f;
+
+	for (int i = index; i < size; i += stride) {
+		tmp += a[i] * b[i];
+	}
+
+	partialResult[t] = tmp;
+	__syncthreads();
+	unsigned int i = blockDim.x / 2;
+	while (i != 0) {
+		if (t < 1) {
+			partialResult[t] += partialResult[t + i];
+		}
+		i /= 2;
+	}
+	if (threadIdx.x == 0) {
+		c[0] = partialResult[0];
+	}
+}
+
 
 int addVector(float* a, float* b, float* c, int size) {
 	if (a == NULL || b == NULL || c == NULL || size < 0) {
@@ -671,6 +699,129 @@ int subMatrix(float* a, float* b, float* c, int rows, int cols) {
 
 	if (err != cudaSuccess) {
 		printf("ERROR: subMatrix, error when trying to free matrix C from memory\n");
+		return ERROR;
+	}
+
+	return SUCCESS;
+}
+
+int dotProduct(float* a, float* b, float* c, int size) {
+	if (a == NULL || b == NULL || c == NULL || size < 0) {
+		printf("ERROR: dotProduct, invalid values\n");
+		return ERROR;
+	}
+
+	cudaError_t err;
+
+	int deviceCount = 0;
+	err = cudaGetDeviceCount(&deviceCount);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to get the number of available devices\n");
+		return ERROR;
+	}
+
+	cudaDeviceProp prop;
+	int totalMemory = 0;
+
+	for (int i = 0; i < deviceCount; ++i) {
+		err = cudaGetDeviceProperties(&prop, i);
+
+		if (err != cudaSuccess) {
+			printf("ERROR: dotProduct, error when trying to get device properties\n");
+			return ERROR;
+		}
+
+		totalMemory += prop.totalGlobalMem;
+	}
+
+
+
+	float* d_a, *d_b, *d_c;
+	size_t bytes = size * sizeof(float);
+
+	size_t totalSize= bytes + bytes + bytes;
+
+	if (totalSize > totalMemory) {
+		printf("ERROR: dotProduct, size is bigger than the total memory available in the system\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_a, bytes);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to allocate memory for vector A\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_a, a, bytes, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to move vector A from Host to Device\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_b, bytes);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to allocate memory for vector B\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_b, b, bytes, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to move vector B from Host to Device\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_c, bytes);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to allocate memory for vector C\n");
+		return ERROR;
+	}
+
+	int threadsPerBlock = BLOCK_SIZE;
+	int blocksPerGrid = BLOCK_SIZE;
+
+	doDotProduct<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, size);
+
+	err = cudaGetLastError();
+	cudaDeviceSynchronize();
+
+
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when calculating the dot product %d\n", err);
+		return ERROR;
+	}
+
+	err = cudaMemcpy(c, d_c, bytes, cudaMemcpyDeviceToHost);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when fetching vector C from Device to Host\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_a);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to free vector A from memory\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_b);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to free vector  B from memory\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_c);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: dotProduct, error when trying to free vector C from memory\n");
 		return ERROR;
 	}
 

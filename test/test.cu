@@ -350,7 +350,7 @@ int testDotProductCPU() {
 int testAddVector() {
 	printf("Testing addVector with values:\n");
 
-	int size = 2<<10;
+	int size = 5;
 
 	float* a = (float*) malloc(size * sizeof(float));
 	float* b = (float*) malloc(size * sizeof(float));
@@ -397,7 +397,7 @@ int testAddVector() {
 int testSubVector() {
 	printf("Testing subVector with values:\n");
 
-	int size = 2<<10;
+	int size = 5;
 
 	float* a = (float*) malloc(size * sizeof(float));
 	float* b = (float*) malloc(size * sizeof(float));
@@ -646,23 +646,71 @@ int testSubMatrix() {
 	return PASSED;
 }
 
+int testDotProduct() {
+	printf("Testing dotProduct with values:\n");
+
+	int size = 2;
+	float a[2] = {1,2};
+	float b[2] = {3,4};
+	float c[1];
+	float c_expected[1] = {11};
+
+	printf("A:\n");
+	printVector(a, size);
+	printf("B:\n");
+	printVector(b, size);
+
+
+	printf("C expected:\n");
+	printVector(c_expected, 1);
+
+	if (dotProduct(a, b, c, size) != SUCCESS) return FAILED;
+
+	printf("C:\n");
+	printVector(c, 1);
+
+	if (fabs(c_expected[0] - c[0]) > 1e-5) {
+		printf("ERROR: dotProduct, expected %f but got %f instead!\n", c_expected[0], c[0]);
+		return FAILED;
+	}
+
+	printf("Testing dotProduct with NULL matrix A\n");
+	if (dotProduct(NULL, b, c, size) != ERROR)
+		return FAILED;
+
+	printf("Testing dotProduct with NULL matrix B\n");
+	if (dotProduct(a, NULL, c, size) != ERROR)
+			return FAILED;
+
+	printf("Testing dotProduct with NULL matrix C\n");
+	if (dotProduct(a, b, NULL, size) != ERROR)
+			return FAILED;
+
+	printf("Testing dotProduct with negative vector size\n");
+	if (dotProduct(a, b, c, -1) != ERROR)
+			return FAILED;
+
+	return PASSED;
+}
+
 /**
  * This main function is responsible for running the necessary tests
  * to ensure the correctness of the solution
  */
 int main(int argc, char **argv)
 {
-	if (testAddVectorCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testSubVectorCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testAddMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testSubMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testMulMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testDotProductCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testAddVectorCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testSubVectorCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testAddMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testSubMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testMulMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testDotProductCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 
-	if (testAddVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testAddVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testSubVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testMulMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testAddMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testSubMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testAddMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testSubMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	if (testDotProduct() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	return 0;
 }
