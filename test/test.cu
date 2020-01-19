@@ -437,6 +437,85 @@ int testSubVector() {
 	printf("Testing subVector with negative size\n");
 	if (subVector(a, b, c, -1) != ERROR) return FAILED;
 
+	return PASSED;
+}
+
+int testMulMatrix() {
+	printf("Testing mulMatrix with values:\n");
+
+	int rowsA = 2<<10;
+	int colsA = 2<<11;
+	int rowsB = colsA;
+	int colsB = 2<<12;
+	int rowsC = rowsA;
+	int colsC = colsB;
+
+	int totalDimA = rowsA * colsA;
+	int totalDimB = rowsB * colsB;
+	int totalDimC = rowsC * colsC;
+
+	printf("Matrix A %d x %d\n", rowsA, colsA);
+	printf("Matrix B %d x %d\n", rowsB, colsB);
+	printf("Matrix C %d x %d\n", rowsC, colsC);
+
+	float* a = (float*) malloc( totalDimA *  sizeof(float));
+	float* b = (float*) malloc( totalDimB *  sizeof(float));
+	float* c = (float*) malloc( totalDimC *  sizeof(float));
+	float* c_expected = (float*) malloc( totalDimC *  sizeof(float));
+
+	a = fillVectorRandomly(a, totalDimA);
+	b = fillVectorRandomly(b, totalDimB);
+
+	mulMatrix(a, b, c_expected, rowsA, colsA, rowsB, colsB, rowsC, colsC);
+
+	if (mulMatrix(a, b, c, rowsA, colsA, rowsB, colsB, rowsC, colsC) != SUCCESS) return FAILED;
+
+	for (int i = 0; i < totalDimC; ++i) {
+		if (fabs(c_expected[i] - c[i]) > 1e-5) {
+			printf("ERROR: mulMatrix, expected %f but got %f instead!\n", c_expected[i], c[i]);
+			return FAILED;
+		}
+	}
+
+	printf("Testing mulMatrix with NULL matrix A\n");
+	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+		return FAILED;
+
+	printf("Testing mulMatrix with NULL matrix B\n");
+	if (mulMatrix(a, NULL, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with NULL matrix C\n");
+	if (mulMatrix(a, b, NULL, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with negative number of rows for matrix A\n");
+	if (mulMatrix(a, b, c, -1, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with negative number of columns for matrix A\n");
+	if (mulMatrix(a, b, c, CPU_TEST_MATRIX_NUM_ROWS, -1, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with negative number of rows for matrix B\n");
+	if (mulMatrix(a, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, -1, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with negative number of columns for matrix B\n");
+	if (mulMatrix(a, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, -1,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with negative number of rows for matrix C\n");
+	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,-1, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with negative number of columns for matrix C\n");
+	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, -1) != ERROR)
+			return FAILED;
+
+	printf("Testing mulMatrix with incompatible matrices\n");
+	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, 3, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
+			return FAILED;
 
 	return PASSED;
 }
@@ -455,5 +534,6 @@ int main(int argc, char **argv)
 
 	if (testAddVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	if (testSubVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	if (testMulMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	return 0;
 }

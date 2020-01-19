@@ -15,6 +15,8 @@
 
 #include "cuda-project-cpu.h"
 
+#define BLOCK_SIZE 16
+
 /**
  * This macro checks return value of the CUDA runtime call and exits
  * the application if the call failed.
@@ -46,6 +48,21 @@ void doSubVector(float* a, float* b, float* c, int size) {
 
 	for (int i = index; i < size; i+= stride) {
 		c[i] = a[i] - b[i];
+	}
+}
+
+__global__
+void doMulMatrix(float* a, float* b, float* c, int rowsA, int colsA, int colsB) {
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+	int tmp = 0;
+
+	if (col < colsB && row < rowsA) {
+		for (int i = 0; i < colsA; ++i) {
+			tmp += a[row * colsA + i] * b[i * colsB + col];
+		}
+		c[row * colsB + col] = tmp;
 	}
 }
 
@@ -279,6 +296,130 @@ int subVector(float* a, float* b, float* c, int size) {
 
 	if (err != cudaSuccess) {
 		printf("ERROR: vectorAdd, error when trying to free vector C from memory\n");
+		return ERROR;
+	}
+
+	return SUCCESS;
+}
+
+int mulMatrix(float* a, float* b, float* c, int rowsA, int colsA, int rowsB, int colsB, int rowsC, int colsC) {
+	if (a == NULL || b == NULL || c == NULL || rowsA < 0 || colsA < 0 || rowsB < 0 || colsC < 0 || rowsC < 0) {
+		printf("ERROR: mulMatrix, invalid values\n");
+		return ERROR;
+	}
+
+	cudaError_t err;
+
+	int deviceCount = 0;
+	err = cudaGetDeviceCount(&deviceCount);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to get the number of available devices\n");
+		return ERROR;
+	}
+
+	cudaDeviceProp prop;
+	int totalMemory = 0;
+
+	for (int i = 0; i < deviceCount; ++i) {
+		err = cudaGetDeviceProperties(&prop, i);
+
+		if (err != cudaSuccess) {
+			printf("ERROR: mulMatrix, error when trying to get device properties\n");
+			return ERROR;
+		}
+
+		totalMemory += prop.totalGlobalMem;
+	}
+
+
+
+	float* d_a, *d_b, *d_c;
+	size_t bytesA = (rowsA * colsA) * sizeof(float);
+	size_t bytesB = (rowsB * colsC) * sizeof(float);
+	size_t bytesC = (rowsC * colsB) * sizeof(float);
+
+	size_t totalSize= bytesA + bytesB + bytesC;
+
+	if (totalSize > totalMemory) {
+		printf("ERROR: mulMatrix, size is bigger than the total memory available in the system\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_a, bytesA);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: matrixMul, error when trying to allocate memory for matrix A\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_a, a, bytesA, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to move matrix A from Host to Device\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_b, bytesB);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to allocate memory for matrix B\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_b, b, bytesB, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to move matrix B from Host to Device\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_c, bytesC);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to allocate memory for matrix C\n");
+		return ERROR;
+	}
+
+	dim3 threadsPerBlock(BLOCK_SIZE, BLOCK_SIZE);
+	dim3 blocksPerGrid((colsB + BLOCK_SIZE - 1) / BLOCK_SIZE, (colsA + BLOCK_SIZE - 1) / BLOCK_SIZE);
+
+	doMulMatrix<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, rowsA, colsA, colsB);
+
+	cudaDeviceSynchronize();
+
+	err = cudaGetLastError();
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when multiplying the matrices\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(c, d_c, bytesC, cudaMemcpyDeviceToHost);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when fetching matrix C from Device to Host\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_a);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to free matrix A from memory\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_b);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to free matrix  B from memory\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_c);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: mulMatrix, error when trying to free matrix C from memory\n");
 		return ERROR;
 	}
 
