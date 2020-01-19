@@ -552,6 +552,131 @@ int addMatrix(float* a, float* b, float* c, int rows, int cols) {
 	return SUCCESS;
 }
 
+int subMatrix(float* a, float* b, float* c, int rows, int cols) {
+	if (a == NULL || b == NULL || c == NULL || rows < 0 || cols < 0) {
+		printf("ERROR: subMatrix, invalid values\n");
+		return ERROR;
+	}
+
+	cudaError_t err;
+
+	int deviceCount = 0;
+	err = cudaGetDeviceCount(&deviceCount);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to get the number of available devices\n");
+		return ERROR;
+	}
+
+	cudaDeviceProp prop;
+	int totalMemory = 0;
+
+	for (int i = 0; i < deviceCount; ++i) {
+		err = cudaGetDeviceProperties(&prop, i);
+
+		if (err != cudaSuccess) {
+			printf("ERROR: subMatrix, error when trying to get device properties\n");
+			return ERROR;
+		}
+
+		totalMemory += prop.totalGlobalMem;
+	}
+
+
+
+	float* d_a, *d_b, *d_c;
+	size_t bytesA = (rows * cols) * sizeof(float);
+	size_t bytesB = (rows * cols) * sizeof(float);
+	size_t bytesC = (rows * cols) * sizeof(float);
+
+	size_t totalSize= bytesA + bytesB + bytesC;
+
+	if (totalSize > totalMemory) {
+		printf("ERROR: subMatrix, size is bigger than the total memory available in the system\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_a, bytesA);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to allocate memory for matrix A\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_a, a, bytesA, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to move matrix A from Host to Device\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_b, bytesB);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to allocate memory for matrix B\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_b, b, bytesB, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to move matrix B from Host to Device\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_c, bytesC);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to allocate memory for matrix C\n");
+		return ERROR;
+	}
+
+	int threadsPerBlock = 256;
+	int blocksPerGrid = ((rows * cols) + threadsPerBlock - 1) / threadsPerBlock;
+
+	doSubVector<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, rows *  cols);
+
+	err = cudaGetLastError();
+	cudaDeviceSynchronize();
+
+
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when subtracting the matrices %d\n", err);
+		return ERROR;
+	}
+
+	err = cudaMemcpy(c, d_c, bytesC, cudaMemcpyDeviceToHost);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when fetching matrix C from Device to Host\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_a);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to free matrix A from memory\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_b);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to free matrix  B from memory\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_c);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: subMatrix, error when trying to free matrix C from memory\n");
+		return ERROR;
+	}
+
+	return SUCCESS;
+}
+
 void printVector(float* v, int size) {
 	for (int i = 0; i < size; ++i) {
 		printf("%9.9f\n", v[i]);
