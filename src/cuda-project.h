@@ -8,6 +8,9 @@
 #ifndef CUDA_PROJECT_H_
 #define CUDA_PROJECT_H_
 
+#define SUCCESS 0
+#define ERROR   1
+
 int addVector(float* a, float* b, float* c, int size);
 int subVector(float* a, float* b, float* c, int size);
 int addMatrix(float* a, float* b, float* c, int rows, int cols);
