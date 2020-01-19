@@ -42,7 +42,7 @@
 
 float* fillVectorRandomly(float* v, int size) {
 	for (int i = 0; i < size; ++i) {
-		v[i] = rand() / (float) RAND_MAX;
+		v[i] = rand() / (float) (RAND_MAX / 2);
 	}
 
 	return v;
@@ -443,10 +443,10 @@ int testSubVector() {
 int testMulMatrix() {
 	printf("Testing mulMatrix with values:\n");
 
-	int rowsA = 2<<10;
-	int colsA = 2<<11;
+	int rowsA = 3;
+	int colsA = 2;
 	int rowsB = colsA;
-	int colsB = 2<<12;
+	int colsB = 4;
 	int rowsC = rowsA;
 	int colsC = colsB;
 
@@ -466,7 +466,7 @@ int testMulMatrix() {
 	a = fillVectorRandomly(a, totalDimA);
 	b = fillVectorRandomly(b, totalDimB);
 
-	mulMatrix(a, b, c_expected, rowsA, colsA, rowsB, colsB, rowsC, colsC);
+	mulMatrixCPU(a, b, c_expected, rowsA, colsA, rowsB, colsB, rowsC, colsC);
 
 	if (mulMatrix(a, b, c, rowsA, colsA, rowsB, colsB, rowsC, colsC) != SUCCESS) return FAILED;
 
@@ -519,6 +519,70 @@ int testMulMatrix() {
 
 	return PASSED;
 }
+
+int testAddMatrix() {
+	printf("Testing addMatrix with values:\n");
+
+	int rows = 2;
+	int cols = 3;
+
+	int totalDim = rows * cols;
+
+	printf("Matrix A %d x %d\n", rows, cols);
+	printf("Matrix B %d x %d\n", rows, cols);
+	printf("Matrix C %d x %d\n", rows, cols);
+
+	float* a = (float*) malloc( totalDim *  sizeof(float));
+	float* b = (float*) malloc( totalDim *  sizeof(float));
+	float* c = (float*) malloc( totalDim *  sizeof(float));
+	float* c_expected = (float*) malloc( totalDim *  sizeof(float));
+
+	a = fillVectorRandomly(a, totalDim);
+	b = fillVectorRandomly(b, totalDim);
+
+	printf("A:\n");
+	printMatrix(a, rows, cols);
+	printf("B:\n");
+	printMatrix(b, rows, cols);
+	addMatrixCPU(a, b, c_expected, rows, cols);
+
+	printf("C expected:\n");
+	printMatrix(c_expected, rows, cols);
+
+	if (addMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
+
+	printf("C:\n");
+	printMatrix(c, rows, cols);
+
+	for (int i = 0; i < totalDim; ++i) {
+		if (fabs(c_expected[i] - c[i]) > 1e-5) {
+			printf("ERROR: addMatrix, expected %f but got %f instead!\n", c_expected[i], c[i]);
+			return FAILED;
+		}
+	}
+
+	printf("Testing Matrix with NULL matrix A\n");
+	if (addMatrix(NULL, b, c, rows, cols) != ERROR)
+		return FAILED;
+
+	printf("Testing addMatrix with NULL matrix B\n");
+	if (addMatrix(a, NULL, c, rows, cols) != ERROR)
+			return FAILED;
+
+	printf("Testing addMatrix with NULL matrix C\n");
+	if (addMatrix(a, b, NULL, rows, cols) != ERROR)
+			return FAILED;
+
+	printf("Testing addMatrix with negative number of rows\n");
+	if (addMatrix(a, b, c, -1, cols) != ERROR)
+			return FAILED;
+
+	printf("Testing addMatrix with negative number of columns\n");
+	if (addMatrix(a, b, c, rows, -1) != ERROR)
+			return FAILED;
+	return PASSED;
+}
+
 /**
  * This main function is responsible for running the necessary tests
  * to ensure the correctness of the solution
@@ -534,6 +598,7 @@ int main(int argc, char **argv)
 
 	if (testAddVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	if (testSubVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testMulMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testMulMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	if (testAddMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	return 0;
 }
