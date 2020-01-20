@@ -693,6 +693,44 @@ int testDotProduct() {
 	return PASSED;
 }
 
+int testInverseMatrix() {
+	printf("Testing inverse Matrix with matrix:\n");
+
+	float m[4] = {1, 1, 1, 3};
+
+	printMatrix(m, 2, 2);
+
+	float inverse[4];
+	float inverse_expected[4] = { 1.5f, -0.5f, -0.5f, 0.5f };
+
+	if (inverseMatrix(m, inverse, 2,2 ) != SUCCESS) return FAILED;
+
+	for (int i = 0; i < 4; ++i) {
+		if (inverse_expected[i] != inverse[i]) {
+			printf("ERROR: inverseMatrix, expected %f but got %f instead!\n", inverse_expected[i], inverse[i]);
+			return FAILED;
+		}
+	}
+
+	printf("Testing inverseMatrix with NULL matrix A\n");
+	if (inverseMatrix(NULL, inverse, 2, 2) != ERROR)
+		return FAILED;
+
+	printf("Testing inverseMatrix with NULL inverse\n");
+	if (inverseMatrix(m, NULL, 2, 2) != ERROR)
+			return FAILED;
+
+	printf("Testing inverseMatrix with negative number of columns\n");
+	if (inverseMatrix(m, inverse, 2, -1) != ERROR)
+			return FAILED;
+
+	printf("Testing inverseMatrix with negative number of rows\n");
+	if (inverseMatrix(m, inverse, -1 ,2) != ERROR)
+			return FAILED;
+
+	return PASSED;
+}
+
 /**
  * This main function is responsible for running the necessary tests
  * to ensure the correctness of the solution
@@ -711,6 +749,7 @@ int main(int argc, char **argv)
 	//if (testMulMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testAddMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testSubMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testDotProduct() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testDotProduct() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	if (testInverseMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	return 0;
 }

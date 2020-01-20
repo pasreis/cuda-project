@@ -31,6 +31,19 @@
 		exit(1);														\
 	} }
 
+void makeIdentityMatrix(float* m, int n) {
+	for (int row = 0; row < n; ++row) {
+		for (int col = 0; col < n; ++col) {
+			if (row == col) {
+				m[row * n + col] = 1.0f;
+			} else {
+				m[row * n + col] = 0.0f;
+			}
+		}
+	}
+}
+
+
 __global__
 void doAddVector(float* a, float* b, float* c, int size) {
 	int index = threadIdx.x + blockIdx.x * blockDim.x;
@@ -91,6 +104,63 @@ void doDotProduct(float* a, float* b, float* c, int size) {
 	}
 	if (threadIdx.x == 0) {
 		c[0] = partialResult[0];
+	}
+}
+
+__global__
+void reduceNoDiagonal(float* m, float* I, int size, int i) {
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (row < size && col < size) {
+		if (row == i && row != col) {
+			I[row * size + col] /= m[i * size + i];
+			m[row * size + col] /= m[i * size + i];
+		}
+	}
+}
+
+__global__
+void reduceDiagonal(float* m, float* I, int size, int i) {
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (row < size && col < size) {
+		if (row == col && row == i) {
+			I[row * size + col] /= m[i * size + i];
+			m[row * size + col] /= m[i * size + i];
+		}
+	}
+}
+
+__global__
+void reduceLine(float* m, float* I, int size, int i) {
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (row < size && col < size) {
+
+		if (row != i) {
+			I[row * size + col] -= I[i * size + col] * m[row * size + i];
+
+			if (col != i) {
+				m[row * size + col] -= m[i * size + col] * m[row * size + i];
+			}
+		}
+	}
+}
+
+__global__
+void makePivot(float* m, float* I, int size, int i) {
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (row < size && col < size) {
+		if (row != i) {
+			if (col == i) {
+				m[row * size + col] = 0;
+			}
+		}
 	}
 }
 
@@ -828,12 +898,6 @@ int dotProduct(float* a, float* b, float* c, int size) {
 	return SUCCESS;
 }
 
-void printVector(float* v, int size) {
-	for (int i = 0; i < size; ++i) {
-		printf("%9.9f\n", v[i]);
-	}
-}
-
 void printMatrix(float* m, int rows, int cols) {
 	for (int i = 0; i < rows; ++i) {
 		for (int j = 0; j < cols; ++j) {
@@ -842,3 +906,131 @@ void printMatrix(float* m, int rows, int cols) {
 		printf("\n");
 	}
 }
+int inverseMatrix(float* m, float* inverse, int rows, int cols) {
+	if (m == NULL || inverse == NULL || rows < 0 || cols < 0) {
+		printf("ERROR: inverseMatrix, invalid values\n");
+		return ERROR;
+	}
+
+	makeIdentityMatrix(inverse, rows);
+
+	cudaError_t err;
+
+	int deviceCount = 0;
+	err = cudaGetDeviceCount(&deviceCount);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when trying to get the number of available devices\n");
+		return ERROR;
+	}
+
+	cudaDeviceProp prop;
+	int totalMemory = 0;
+
+	for (int i = 0; i < deviceCount; ++i) {
+		err = cudaGetDeviceProperties(&prop, i);
+
+		if (err != cudaSuccess) {
+			printf("ERROR: inverseMatrix, error when trying to get device properties\n");
+			return ERROR;
+		}
+
+		totalMemory += prop.totalGlobalMem;
+	}
+
+
+
+	float* d_m, *d_inverse;
+	int size = rows * cols;
+	size_t bytes = size * sizeof(float);
+
+	size_t totalSize= bytes + bytes + bytes;
+
+	if (totalSize > totalMemory) {
+		printf("ERROR: inverseMatrix, size is bigger than the total memory available in the system\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_m, bytes);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when trying to allocate memory for matrix A\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_m, m, bytes, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when trying to move matrix A from Host to Device\n");
+		return ERROR;
+	}
+
+	err = cudaMalloc((float**) &d_inverse, bytes);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when trying to allocate memory for inverse matrix\n");
+		return ERROR;
+	}
+
+	err = cudaMemcpy(d_inverse, inverse, bytes, cudaMemcpyHostToDevice);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when moving Identity Matrix to device\n");
+		return ERROR;
+	}
+
+	dim3 threadsPerBlock(BLOCK_SIZE,BLOCK_SIZE);
+	dim3 blocksPerGrid((size + BLOCK_SIZE -1) / BLOCK_SIZE, (size + BLOCK_SIZE -1) / BLOCK_SIZE);
+
+	for (int i = 0; i < size; ++i) {
+		reduceNoDiagonal<<<blocksPerGrid, threadsPerBlock>>>(d_m, d_inverse, rows, i);
+		cudaDeviceSynchronize();
+		reduceDiagonal<<<blocksPerGrid, threadsPerBlock>>>(d_m, d_inverse, rows, i);
+		cudaDeviceSynchronize();
+		reduceLine<<<blocksPerGrid, threadsPerBlock>>>(d_m, d_inverse, rows, i);
+		cudaDeviceSynchronize();
+		makePivot<<<blocksPerGrid, threadsPerBlock>>>(d_m, d_inverse, rows, i);
+		cudaDeviceSynchronize();
+	}
+
+	err = cudaGetLastError();
+
+
+
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when calculating the inverse matrix%d\n", err);
+		return ERROR;
+	}
+
+	err = cudaMemcpy(inverse, d_inverse, bytes, cudaMemcpyDeviceToHost);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when fetching the inverse matrix from Device to Host\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_m);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when trying to free matrix from memory\n");
+		return ERROR;
+	}
+
+	err = cudaFree(d_inverse);
+
+	if (err != cudaSuccess) {
+		printf("ERROR: inverseMatrix, error when trying to free the inverse matrix from memory\n");
+		return ERROR;
+	}
+
+	return SUCCESS;
+}
+
+void printVector(float* v, int size) {
+	for (int i = 0; i < size; ++i) {
+		printf("%9.9f\n", v[i]);
+	}
+}
+
+
