@@ -136,3 +136,54 @@ int dotProductCPU(float* a, float* b, float* c, int size) {
 
 	return SUCCESS;
 }
+
+__host__
+int inverseMatrixCPU(float* m, float* I, int rows, int cols) {
+	if (m == NULL || I == NULL || rows < 0 || cols < 0) {
+		printf("ERROR: inverseMatrixCPU invalid values\n");
+		return ERROR;
+	}
+
+	for (int i = 0; i < rows; ++i) {
+		for (int row = 0; row < rows; ++row) {
+			for (int col = 0; col < cols; ++col) {
+				if (row == i && row != col) {
+					I[row * rows + col] /= m[i * rows + i];
+					m[row * rows + col] /= m[i * rows + i];
+				}
+			}
+		}
+
+		for (int row = 0; row < rows; ++row) {
+			for (int col = 0; col < cols; ++col) {
+				if (row == col && row == i) {
+					I[row * rows + col] = I[row * rows + col] / m[i * rows + i];
+					m[row * rows + col] = m[row * rows + col] / m[i * row + i];
+				}
+			}
+		}
+
+		for (int row = 0; row < rows; ++row) {
+			for (int col = 0; col < cols; ++col) {
+				if (row != i) {
+					I[row * rows + col] -= I[i * rows + col] * m[row * rows + i];
+
+					if (col != i) {
+						m[row * rows + col] -= m[i * rows + col] * m[row * rows + i];
+					}
+				}
+			}
+		}
+
+		for (int row = 0; row < rows; ++row) {
+			for (int col = 0; col < cols; ++col) {
+				if (row != i && col == i) {
+					m[row * rows + col] = 0;
+				}
+			}
+		}
+	}
+
+	return SUCCESS;
+}
+

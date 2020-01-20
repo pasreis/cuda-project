@@ -347,6 +347,45 @@ int testDotProductCPU() {
 	return PASSED;
 }
 
+int testInverseMatrixCPU() {
+	printf("Testing inverseMatrixCPU with values:\n");
+
+	float m[4] = {1.0f, 1.0f, 1.0f, 3.0f};
+	float I[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+	float expected[4] = { 1.5f, -0.5f, -0.5f, 0.5f};
+
+	printf("M:\n");
+	printMatrix(m, 2, 2);
+
+	printf("I:\n");
+	printMatrix(I, 2, 2);
+	if (inverseMatrixCPU(m, I, 2, 2) != SUCCESS) return FAILED;
+
+	printf("M^-1\n");
+	printMatrix(I, 2, 2);
+
+	for (int i  = 0; i < 4; ++i)  {
+		if (I[i] != expected[i]) {
+			printf("ERROR: inverseMatrixCPU, expected %f, but got %f instead!\n", expected[i], I[i]);
+			return FAILED;
+		}
+	}
+
+	printf("Testing inverseMatrixCPU with NULL vector A\n");
+	if (inverseMatrixCPU(NULL, I, 2, 2) != ERROR) return FAILED;
+
+	printf("Testing inverseMatrixCPU with NULL vector B\n");
+	if (inverseMatrixCPU(m, NULL, 2, 2) != ERROR) return FAILED;
+
+	printf("Testing inverseMatrixCPU with NULL vector C\n");
+	if (inverseMatrixCPU(m, I, -2, 2) != ERROR) return FAILED;
+
+	printf("Testing inverseMatrixCPU with negative size\n");
+	if (inverseMatrixCPU(m, I, 2, -1) != ERROR) return FAILED;
+
+	return PASSED;
+}
+
 int testAddVector() {
 	printf("Testing addVector with values:\n");
 
@@ -743,6 +782,7 @@ int main(int argc, char **argv)
 	//if (testSubMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testMulMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testDotProductCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	if (testInverseMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 
 	//if (testAddVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testSubVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
@@ -750,6 +790,6 @@ int main(int argc, char **argv)
 	//if (testAddMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testSubMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	//if (testDotProduct() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testInverseMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	//if (testInverseMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
 	return 0;
 }

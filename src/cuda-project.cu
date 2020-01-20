@@ -156,10 +156,8 @@ void makePivot(float* m, float* I, int size, int i) {
 	int col = blockIdx.y * blockDim.y + threadIdx.y;
 
 	if (row < size && col < size) {
-		if (row != i) {
-			if (col == i) {
-				m[row * size + col] = 0;
-			}
+		if (row != i && col == i) {
+			m[row * size + col] = 0;
 		}
 	}
 }
@@ -994,9 +992,6 @@ int inverseMatrix(float* m, float* inverse, int rows, int cols) {
 	}
 
 	err = cudaGetLastError();
-
-
-
 
 	if (err != cudaSuccess) {
 		printf("ERROR: inverseMatrix, error when calculating the inverse matrix%d\n", err);
