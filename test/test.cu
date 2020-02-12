@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <sys/time.h>
+
 #include <cuda.h>
 
 #include "../src/cuda-project.h"
@@ -40,12 +42,16 @@
 		exit(1);														\
 	} }
 
-float* fillVectorRandomly(float* v, int size) {
+double cpuTimer() {
+	struct timeval clock;
+	gettimeofday(&clock, NULL);
+	return ((double) clock.tv_sec + (double) clock.tv_usec * 1e-6);
+}
+	
+void fillVectorRandomly(float* v, int size) {
 	for (int i = 0; i < size; ++i) {
 		v[i] = rand() / (float) (RAND_MAX / 2);
 	}
-
-	return v;
 }
 
 int testAddVectorCPU() {
@@ -386,31 +392,33 @@ int testInverseMatrixCPU() {
 	return PASSED;
 }
 
-int testAddVector() {
+int testAddVector(int numberOfElements) {
 	printf("Testing addVector with values:\n");
 
-	int size = 5;
+	int size = numberOfElements * sizeof(float);
 
-	float* a = (float*) malloc(size * sizeof(float));
-	float* b = (float*) malloc(size * sizeof(float));
-	float* c = (float*) malloc(size * sizeof(float));
+	float* a = (float*) malloc(size);
+	float* b = (float*) malloc(size);
+	float* c = (float*) malloc(size);
 	float* c_expected = (float*) malloc(size * sizeof(float));
 
-	a = fillVectorRandomly(a, size);
-	b = fillVectorRandomly(b, size);
+	fillVectorRandomly(a, numberOfElements);
+	fillVectorRandomly(b, numberOfElements);
 
-	addVectorCPU(a, b, c_expected, size);
+	double begin = cpuTimer(), end;
+	addVectorCPU(a, b, c_expected, numberOfElements);
+	end = cpuTimer();
 
-	printf("A:\n");
-	printVector(a, size);
-	printf("B:\n");
-	printVector(b, size);
+	printf("addVectorCPU() executed in %lf ms\n", end - begin);
 
-	printf("Vectors size: %d\n", size);
+	printf("Vectors size: %d\n", numberOfElements);
+	begin = cpuTimer();
+	addVector(a, b, c, numberOfElements);
+	end = cpuTimer();
 
-	addVector(a, b, c, size);
+	printf("addVector() executed in %lf ms\n", end - begin);
 
-	for (int i = 0; i < size; ++i) {
+	for (int i = 0; i < numberOfElements; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
 			printf("ERROR: addVector, expected %f, but got %f instead!\n", c_expected[i], c[i]);
 			return FAILED;
@@ -433,31 +441,34 @@ int testAddVector() {
 	return PASSED;
 }
 
-int testSubVector() {
+int testSubVector(int numberOfElements) {
 	printf("Testing subVector with values:\n");
 
-	int size = 5;
+	int size = numberOfElements * sizeof(float);
 
-	float* a = (float*) malloc(size * sizeof(float));
-	float* b = (float*) malloc(size * sizeof(float));
-	float* c = (float*) malloc(size * sizeof(float));
-	float* c_expected = (float*) malloc(size * sizeof(float));
+	float* a = (float*) malloc(size);
+	float* b = (float*) malloc(size);
+	float* c = (float*) malloc(size);
+	float* c_expected = (float*) malloc(size);
 
-	a = fillVectorRandomly(a, size);
-	b = fillVectorRandomly(b, size);
+	fillVectorRandomly(a, numberOfElements);
+	fillVectorRandomly(b, numberOfElements);
 
-	subVectorCPU(a, b, c_expected, size);
+	double begin = cpuTimer(), end; 
+	subVectorCPU(a, b, c_expected, numberOfElements);
+	end = cpuTimer();
 
-	printf("A:\n");
-	//printVector(a, size);
-	printf("B:\n");
-	//printVector(b, size);
+	printf("subVectorCPU() executed in %lf ms\n", end - begin);
 
-	printf("Vectors size: %d\n", size);
+	printf("Vectors size: %d\n", numberOfElements);
 
-	subVector(a, b, c, size);
+	begin = cpuTimer();
+	subVector(a, b, c, numberOfElements);
+	end = cpuTimer();
 
-	for (int i = 0; i < size; ++i) {
+	printf("subVectors() executed in %lf ms\n", end - begin);
+
+	for (int i = 0; i < numberOfElements; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
 			printf("ERROR: subVector, expected %f, but got %f instead!\n", c_expected[i], c[i]);
 			return FAILED;
@@ -479,13 +490,9 @@ int testSubVector() {
 	return PASSED;
 }
 
-int testMulMatrix() {
+int testMulMatrix(int rowsA, int colsA, int rowsB, int colsB) {
 	printf("Testing mulMatrix with values:\n");
-
-	int rowsA = 3;
-	int colsA = 2;
-	int rowsB = colsA;
-	int colsB = 4;
+	
 	int rowsC = rowsA;
 	int colsC = colsB;
 
@@ -493,21 +500,25 @@ int testMulMatrix() {
 	int totalDimB = rowsB * colsB;
 	int totalDimC = rowsC * colsC;
 
-	printf("Matrix A %d x %d\n", rowsA, colsA);
-	printf("Matrix B %d x %d\n", rowsB, colsB);
-	printf("Matrix C %d x %d\n", rowsC, colsC);
-
 	float* a = (float*) malloc( totalDimA *  sizeof(float));
 	float* b = (float*) malloc( totalDimB *  sizeof(float));
 	float* c = (float*) malloc( totalDimC *  sizeof(float));
 	float* c_expected = (float*) malloc( totalDimC *  sizeof(float));
 
-	a = fillVectorRandomly(a, totalDimA);
-	b = fillVectorRandomly(b, totalDimB);
+	fillVectorRandomly(a, totalDimA);
+	fillVectorRandomly(b, totalDimB);
 
+	double begin = cpuTimer(), end;
 	mulMatrixCPU(a, b, c_expected, rowsA, colsA, rowsB, colsB, rowsC, colsC);
+	end = cpuTimer();
 
+	printf("mulMatrixCPU() executed in %lf ms\n", end - begin);
+
+	begin = cpuTimer();
 	if (mulMatrix(a, b, c, rowsA, colsA, rowsB, colsB, rowsC, colsC) != SUCCESS) return FAILED;
+	end = cpuTimer();
+
+	printf("mulMatrix() executed in %lf ms\n", end - begin);
 
 	for (int i = 0; i < totalDimC; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -559,39 +570,30 @@ int testMulMatrix() {
 	return PASSED;
 }
 
-int testAddMatrix() {
+int testAddMatrix(int rows, int cols) {
 	printf("Testing addMatrix with values:\n");
 
-	int rows = 2;
-	int cols = 3;
-
 	int totalDim = rows * cols;
-
-	printf("Matrix A %d x %d\n", rows, cols);
-	printf("Matrix B %d x %d\n", rows, cols);
-	printf("Matrix C %d x %d\n", rows, cols);
 
 	float* a = (float*) malloc( totalDim *  sizeof(float));
 	float* b = (float*) malloc( totalDim *  sizeof(float));
 	float* c = (float*) malloc( totalDim *  sizeof(float));
 	float* c_expected = (float*) malloc( totalDim *  sizeof(float));
 
-	a = fillVectorRandomly(a, totalDim);
-	b = fillVectorRandomly(b, totalDim);
+	fillVectorRandomly(a, totalDim);
+	fillVectorRandomly(b, totalDim);
 
-	printf("A:\n");
-	printMatrix(a, rows, cols);
-	printf("B:\n");
-	printMatrix(b, rows, cols);
+	double begin = cpuTimer(), end;
 	addMatrixCPU(a, b, c_expected, rows, cols);
+	end = cpuTimer();
 
-	printf("C expected:\n");
-	printMatrix(c_expected, rows, cols);
+	printf("addMatrixCPU() executed in %lf ms\n", end - begin); 
 
+	begin = cpuTimer();
 	if (addMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
+	end = cpuTimer();
 
-	printf("C:\n");
-	printMatrix(c, rows, cols);
+	printf("addMatrix() executed in %lf ms\n", end - begin);
 
 	for (int i = 0; i < totalDim; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -622,39 +624,30 @@ int testAddMatrix() {
 	return PASSED;
 }
 
-int testSubMatrix() {
+int testSubMatrix(int rows, int cols) {
 	printf("Testing subMatrix with values:\n");
 
-	int rows = 2;
-	int cols = 3;
-
 	int totalDim = rows * cols;
-
-	printf("Matrix A %d x %d\n", rows, cols);
-	printf("Matrix B %d x %d\n", rows, cols);
-	printf("Matrix C %d x %d\n", rows, cols);
 
 	float* a = (float*) malloc( totalDim *  sizeof(float));
 	float* b = (float*) malloc( totalDim *  sizeof(float));
 	float* c = (float*) malloc( totalDim *  sizeof(float));
 	float* c_expected = (float*) malloc( totalDim *  sizeof(float));
 
-	a = fillVectorRandomly(a, totalDim);
-	b = fillVectorRandomly(b, totalDim);
+	fillVectorRandomly(a, totalDim);
+	fillVectorRandomly(b, totalDim);
 
-	printf("A:\n");
-	printMatrix(a, rows, cols);
-	printf("B:\n");
-	printMatrix(b, rows, cols);
+	double begin = cpuTimer(), end;
 	subMatrixCPU(a, b, c_expected, rows, cols);
+	end = cpuTimer();
 
-	printf("C expected:\n");
-	printMatrix(c_expected, rows, cols);
+	printf("subMatrixCPU() exectued in %lf ms\n", end - begin);
 
+	begin = cpuTimer();
 	if (subMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
+	end = cpuTimer();
 
-	printf("C:\n");
-	printMatrix(c, rows, cols);
+	printf("subMatrix() executed in %lf ms\n", end - begin);
 
 	for (int i = 0; i < totalDim; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -685,32 +678,41 @@ int testSubMatrix() {
 	return PASSED;
 }
 
-int testDotProduct() {
+int testDotProduct(int numberOfElements) {
 	printf("Testing dotProduct with values:\n");
 
-	int size = 2;
-	float a[2] = {1,2};
-	float b[2] = {3,4};
-	float c[1];
-	float c_expected[1] = {11};
+	float* a;
+	float* b;
+	float* c;
+	float* c_expected;
 
-	printf("A:\n");
-	printVector(a, size);
-	printf("B:\n");
-	printVector(b, size);
+	int size = numberOfElements * sizeof(float);
 
+	a = (float*) malloc(size);
+	b = (float*) malloc(size);
+	c = (float*) malloc(size);
+	c_expected = (float*) malloc(size);
 
-	printf("C expected:\n");
-	printVector(c_expected, 1);
+	fillVectorRandomly(a, numberOfElements);
+	fillVectorRandomly(b, numberOfElements);
 
-	if (dotProduct(a, b, c, size) != SUCCESS) return FAILED;
+	double begin = cpuTimer(), end;
+	dotProductCPU(a, b, c_expected, numberOfElements);
+	end = cpuTimer();
 
-	printf("C:\n");
-	printVector(c, 1);
+	printf("dotProductCPU() executed in %lf ms\n", end - begin);
 
-	if (fabs(c_expected[0] - c[0]) > 1e-5) {
-		printf("ERROR: dotProduct, expected %f but got %f instead!\n", c_expected[0], c[0]);
-		return FAILED;
+	begin = cpuTimer();
+	if (dotProduct(a, b, c, numberOfElements) != SUCCESS) return FAILED;
+	end = cpuTimer();
+
+	printf("dotProduct() executed in %lf ms\n", end - begin);
+
+	for (int i = 0; i < numberOfElements; ++i) {
+		if (fabs(c_expected[i] - c[i]) > 1e-5) {
+			printf("ERROR: dotProduct, expected %f but got %f instead!\n", c_expected[i], c[i]);
+			return FAILED;
+		}
 	}
 
 	printf("Testing dotProduct with NULL matrix A\n");
@@ -732,7 +734,7 @@ int testDotProduct() {
 	return PASSED;
 }
 
-int testInverseMatrix() {
+int testInverseMatrix(int matrixDimension) {
 	printf("Testing inverse Matrix with matrix:\n");
 
 	float m[4] = {1, 1, 1, 3};
@@ -776,20 +778,74 @@ int testInverseMatrix() {
  */
 int main(int argc, char **argv)
 {
-	//if (testAddVectorCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testSubVectorCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testAddMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testSubMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testMulMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testDotProductCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	if (testInverseMatrixCPU() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	char option = getopt(argc, argv, "abcdefg");
 
-	//if (testAddVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testSubVector() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testMulMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testAddMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testSubMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testDotProduct() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
-	//if (testInverseMatrix() == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+	switch (option) {
+		case 'a':
+			if (argc != 3 ) {
+				printf("ERROR: invalid number of arguments!\n");
+				exit(EXIT_FAILURE);
+			}
+
+			if (testAddVector(atoi(argv[2])) == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+
+			break;
+		case 'b':
+			if (argc != 3) {
+				printf("ERROR: invalid number of arguments!\n");
+				exit(EXIT_FAILURE);
+			}
+			
+			if (testSubVector(atoi(argv[2])) == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+
+			break;
+		case 'c':
+			if (argc != 6) {
+				printf("ERROR: invalid number of arguments!\n");
+				exit(EXIT_FAILURE);
+			}
+
+			if (testMulMatrix(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5])) == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+
+			break;
+		case 'd':
+			if (argc != 4) {
+				printf("ERROR: invalid number of arguments!\n");
+				exit(EXIT_FAILURE);
+			}
+
+			if (testAddMatrix(atoi(argv[2]), atoi(argv[3])) == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+
+			break;
+		case 'e':
+			if (argc != 4) {
+				printf("ERROR: invalid number of arguments!\n");
+				exit(EXIT_FAILURE);
+			}
+
+			if (testSubMatrix(atoi(argv[2]), atoi(argv[3])) == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+
+			break;
+		case 'f':
+			if (argc != 3) {
+				printf("ERROR: invalid number of arguments!\n");
+				exit(EXIT_FAILURE);
+			}
+	
+			if (testDotProduct(atoi(argv[2])) == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+			
+			break;
+		case 'g':
+			if (argc != 3) {
+				printf("ERROR: invalid number of arguments!\n");
+				exit(EXIT_FAILURE);
+			}
+
+			if (testInverseMatrix(2) == PASSED) printf("TEST PASSED!\n"); else printf("TEST FAILED!\n");
+
+			break;
+	}
+
 	return 0;
 }
+

@@ -20,5 +20,6 @@ int dotProduct(float* a, float* b, float* c, int size);
 int inverseMatrix(float* a, float* inverse, int rows, int cols);
 int printVector(float* v, int size);
 int printMatrix(float* m, int rows, int cols);
+void makeIdentityMatrix(float* m, int matrixDimension);
 
 #endif /* CUDA_PROJECT_H_ */
