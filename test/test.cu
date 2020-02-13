@@ -42,11 +42,6 @@
 		exit(1);														\
 	} }
 
-double cpuTimer() {
-	struct timeval clock;
-	gettimeofday(&clock, NULL);
-	return ((double) clock.tv_sec + (double) clock.tv_usec * 1e-6);
-}
 	
 void fillVectorRandomly(float* v, int size) {
 	for (int i = 0; i < size; ++i) {
@@ -405,18 +400,9 @@ int testAddVector(int numberOfElements) {
 	fillVectorRandomly(a, numberOfElements);
 	fillVectorRandomly(b, numberOfElements);
 
-	double begin = cpuTimer(), end;
 	addVectorCPU(a, b, c_expected, numberOfElements);
-	end = cpuTimer();
 
-	printf("addVectorCPU() executed in %lf ms\n", end - begin);
-
-	printf("Vectors size: %d\n", numberOfElements);
-	begin = cpuTimer();
 	addVector(a, b, c, numberOfElements);
-	end = cpuTimer();
-
-	printf("addVector() executed in %lf ms\n", end - begin);
 
 	for (int i = 0; i < numberOfElements; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -424,17 +410,12 @@ int testAddVector(int numberOfElements) {
 			return FAILED;
 		}
 	}
-
-	printf("Testing addVector with NULL vector A\n");
 	if (addVector(NULL, b, c, CPU_TEST_VECTOR_SIZE) != ERROR) return FAILED;
 
-	printf("Testing addVector with NULL vector B\n");
 	if (addVector(a, NULL, c, CPU_TEST_VECTOR_SIZE) != ERROR) return FAILED;
 
-	printf("Testing addVector with NULL vector C\n");
 	if (addVector(a, b, NULL, CPU_TEST_VECTOR_SIZE) != ERROR) return FAILED;
 
-	printf("Testing addVector with negative size\n");
 	if (addVector(a, b, c, -1) != ERROR) return FAILED;
 
 
@@ -454,37 +435,21 @@ int testSubVector(int numberOfElements) {
 	fillVectorRandomly(a, numberOfElements);
 	fillVectorRandomly(b, numberOfElements);
 
-	double begin = cpuTimer(), end; 
 	subVectorCPU(a, b, c_expected, numberOfElements);
-	end = cpuTimer();
 
-	printf("subVectorCPU() executed in %lf ms\n", end - begin);
-
-	printf("Vectors size: %d\n", numberOfElements);
-
-	begin = cpuTimer();
 	subVector(a, b, c, numberOfElements);
-	end = cpuTimer();
-
-	printf("subVectors() executed in %lf ms\n", end - begin);
-
 	for (int i = 0; i < numberOfElements; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
-			printf("ERROR: subVector, expected %f, but got %f instead!\n", c_expected[i], c[i]);
 			return FAILED;
 		}
 	}
 
-	printf("Testing subVector with NULL vector A\n");
 	if (subVector(NULL, b, c, CPU_TEST_VECTOR_SIZE) != ERROR) return FAILED;
 
-	printf("Testing subVector with NULL vector B\n");
 	if (subVector(a, NULL, c, CPU_TEST_VECTOR_SIZE) != ERROR) return FAILED;
 
-	printf("Testing subVector with NULL vector C\n");
 	if (subVector(a, b, NULL, CPU_TEST_VECTOR_SIZE) != ERROR) return FAILED;
 
-	printf("Testing subVector with negative size\n");
 	if (subVector(a, b, c, -1) != ERROR) return FAILED;
 
 	return PASSED;
@@ -508,17 +473,9 @@ int testMulMatrix(int rowsA, int colsA, int rowsB, int colsB) {
 	fillVectorRandomly(a, totalDimA);
 	fillVectorRandomly(b, totalDimB);
 
-	double begin = cpuTimer(), end;
 	mulMatrixCPU(a, b, c_expected, rowsA, colsA, rowsB, colsB, rowsC, colsC);
-	end = cpuTimer();
 
-	printf("mulMatrixCPU() executed in %lf ms\n", end - begin);
-
-	begin = cpuTimer();
 	if (mulMatrix(a, b, c, rowsA, colsA, rowsB, colsB, rowsC, colsC) != SUCCESS) return FAILED;
-	end = cpuTimer();
-
-	printf("mulMatrix() executed in %lf ms\n", end - begin);
 
 	for (int i = 0; i < totalDimC; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -527,43 +484,33 @@ int testMulMatrix(int rowsA, int colsA, int rowsB, int colsB) {
 		}
 	}
 
-	printf("Testing mulMatrix with NULL matrix A\n");
 	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 		return FAILED;
 
-	printf("Testing mulMatrix with NULL matrix B\n");
 	if (mulMatrix(a, NULL, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with NULL matrix C\n");
 	if (mulMatrix(a, b, NULL, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with negative number of rows for matrix A\n");
 	if (mulMatrix(a, b, c, -1, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with negative number of columns for matrix A\n");
 	if (mulMatrix(a, b, c, CPU_TEST_MATRIX_NUM_ROWS, -1, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with negative number of rows for matrix B\n");
 	if (mulMatrix(a, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, -1, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with negative number of columns for matrix B\n");
 	if (mulMatrix(a, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, -1,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with negative number of rows for matrix C\n");
 	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,-1, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with negative number of columns for matrix C\n");
 	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, -1) != ERROR)
 			return FAILED;
 
-	printf("Testing mulMatrix with incompatible matrices\n");
 	if (mulMatrix(NULL, b, c, CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS, 3, CPU_TEST_MATRIX_NUM_COLS,CPU_TEST_MATRIX_NUM_ROWS, CPU_TEST_MATRIX_NUM_COLS) != ERROR)
 			return FAILED;
 
@@ -583,17 +530,9 @@ int testAddMatrix(int rows, int cols) {
 	fillVectorRandomly(a, totalDim);
 	fillVectorRandomly(b, totalDim);
 
-	double begin = cpuTimer(), end;
 	addMatrixCPU(a, b, c_expected, rows, cols);
-	end = cpuTimer();
 
-	printf("addMatrixCPU() executed in %lf ms\n", end - begin); 
-
-	begin = cpuTimer();
 	if (addMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
-	end = cpuTimer();
-
-	printf("addMatrix() executed in %lf ms\n", end - begin);
 
 	for (int i = 0; i < totalDim; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -602,23 +541,18 @@ int testAddMatrix(int rows, int cols) {
 		}
 	}
 
-	printf("Testing Matrix with NULL matrix A\n");
 	if (addMatrix(NULL, b, c, rows, cols) != ERROR)
 		return FAILED;
 
-	printf("Testing addMatrix with NULL matrix B\n");
 	if (addMatrix(a, NULL, c, rows, cols) != ERROR)
 			return FAILED;
 
-	printf("Testing addMatrix with NULL matrix C\n");
 	if (addMatrix(a, b, NULL, rows, cols) != ERROR)
 			return FAILED;
 
-	printf("Testing addMatrix with negative number of rows\n");
 	if (addMatrix(a, b, c, -1, cols) != ERROR)
 			return FAILED;
 
-	printf("Testing addMatrix with negative number of columns\n");
 	if (addMatrix(a, b, c, rows, -1) != ERROR)
 			return FAILED;
 	return PASSED;
@@ -637,17 +571,9 @@ int testSubMatrix(int rows, int cols) {
 	fillVectorRandomly(a, totalDim);
 	fillVectorRandomly(b, totalDim);
 
-	double begin = cpuTimer(), end;
 	subMatrixCPU(a, b, c_expected, rows, cols);
-	end = cpuTimer();
-
-	printf("subMatrixCPU() exectued in %lf ms\n", end - begin);
-
-	begin = cpuTimer();
 	if (subMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
-	end = cpuTimer();
-
-	printf("subMatrix() executed in %lf ms\n", end - begin);
+	if (subMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
 
 	for (int i = 0; i < totalDim; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -656,23 +582,14 @@ int testSubMatrix(int rows, int cols) {
 		}
 	}
 
-	printf("Testing subMatrix with NULL matrix A\n");
-	if (subMatrix(NULL, b, c, rows, cols) != ERROR)
-		return FAILED;
-
-	printf("Testing subMatrix with NULL matrix B\n");
+	if (subMatrix(NULL, b, c, rows, cols) != ERROR) return FAILED;
+	if (subMatrix(NULL, b, c, rows, cols) != ERROR) return FAILED;
 	if (subMatrix(a, NULL, c, rows, cols) != ERROR)
 			return FAILED;
-
-	printf("Testing subMatrix with NULL matrix C\n");
 	if (subMatrix(a, b, NULL, rows, cols) != ERROR)
 			return FAILED;
-
-	printf("Testing subMatrix with negative number of rows\n");
 	if (subMatrix(a, b, c, -1, cols) != ERROR)
 			return FAILED;
-
-	printf("Testing subMatrix with negative number of columns\n");
 	if (subMatrix(a, b, c, rows, -1) != ERROR)
 			return FAILED;
 	return PASSED;
@@ -696,17 +613,8 @@ int testDotProduct(int numberOfElements) {
 	fillVectorRandomly(a, numberOfElements);
 	fillVectorRandomly(b, numberOfElements);
 
-	double begin = cpuTimer(), end;
 	dotProductCPU(a, b, c_expected, numberOfElements);
-	end = cpuTimer();
-
-	printf("dotProductCPU() executed in %lf ms\n", end - begin);
-
-	begin = cpuTimer();
 	if (dotProduct(a, b, c, numberOfElements) != SUCCESS) return FAILED;
-	end = cpuTimer();
-
-	printf("dotProduct() executed in %lf ms\n", end - begin);
 
 	for (int i = 0; i < numberOfElements; ++i) {
 		if (fabs(c_expected[i] - c[i]) > 1e-5) {
@@ -715,19 +623,14 @@ int testDotProduct(int numberOfElements) {
 		}
 	}
 
-	printf("Testing dotProduct with NULL matrix A\n");
 	if (dotProduct(NULL, b, c, size) != ERROR)
 		return FAILED;
-
-	printf("Testing dotProduct with NULL matrix B\n");
 	if (dotProduct(a, NULL, c, size) != ERROR)
 			return FAILED;
 
-	printf("Testing dotProduct with NULL matrix C\n");
 	if (dotProduct(a, b, NULL, size) != ERROR)
 			return FAILED;
 
-	printf("Testing dotProduct with negative vector size\n");
 	if (dotProduct(a, b, c, -1) != ERROR)
 			return FAILED;
 

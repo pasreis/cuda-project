@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <sys/time.h>
+
 #include <cuda.h>
 
 #include "cuda-project-cpu.h"
@@ -29,6 +31,12 @@
 		exit(1);														\
 	} }
 
+double timer() {
+	struct timeval clock;
+	gettimeofday(&clock, NULL);
+	return ((double) clock.tv_sec + (double) clock.tv_usec * 1.e-6);
+}
+
 __host__
 int addVectorCPU(float* a, float* b, float* c, int size) {
 	if (a == NULL || b == NULL || c == NULL || size < 0) {
@@ -36,9 +44,13 @@ int addVectorCPU(float* a, float* b, float* c, int size) {
 		return ERROR;
 	}
 
+	double begin = timer(), end;
 	for (int i = 0; i < size; ++i) {
 		c[i] = a[i] + b[i];
 	}
+
+	end = timer();
+	printf("addVectorCPU() executed in %lf ms.\n", end - begin);
 
 	return SUCCESS;
 }
@@ -50,9 +62,14 @@ int subVectorCPU(float* a, float* b, float* c, int size) {
 		return ERROR;
 	}
 
+	double begin = timer(), end;
+
 	for (int i = 0; i < size; ++i) {
 		c[i] = a[i] - b[i];
 	}
+
+	end = timer();
+	printf("subVectorCPU() executed in %lf ms.\n", end - begin);
 
 	return SUCCESS;
 }
@@ -64,11 +81,15 @@ int addMatrixCPU(float* a, float* b, float* c, int rows, int cols) {
 		return ERROR;
 	}
 
+	double begin = timer(), end;
 	for (int row = 0; row < rows; ++row) {
 		for (int col = 0; col < cols; ++col) {
 			c[row * cols + col] = a[row * cols + col] + b[row * cols + col];
 		}
 	}
+
+	end = timer();
+	printf("addMatrixCPU() executed in %ld ms.\n", end - begin);
 
 	return SUCCESS;
 }
@@ -80,11 +101,15 @@ int subMatrixCPU(float* a, float* b, float* c, int rows, int cols) {
 		return ERROR;
 	}
 
+	double begin = timer(), end;
 	for (int row = 0; row < rows; ++row) {
 		for (int col = 0; col < cols; ++col) {
 			c[row * cols + col] = a[row * cols + col] - b[row * cols + col];
 		}
 	}
+
+	end = timer();
+	printf("subMatrixCPU() executed in %lf ms.\n", end -begin);
 
 	return SUCCESS;
 }
@@ -106,6 +131,7 @@ int mulMatrixCPU(float* a, float* b, float* c, int rowsA, int colsA, int rowsB, 
 		return ERROR;
 	}
 
+	double begin = timer(), end;
 	for (int i = 0; i < rowsA; ++i) {
 		for (int j = 0; j < colsB; ++j) {
 			float tmp = 0.0f;
@@ -115,6 +141,9 @@ int mulMatrixCPU(float* a, float* b, float* c, int rowsA, int colsA, int rowsB, 
 			c[i * colsC + j] = tmp;
 		}
 	}
+
+	end = timer();
+	printf("mulMatrixCPU() executed in %lf ms.\n", end - begin);
 
 	return SUCCESS;
 }
@@ -128,11 +157,15 @@ int dotProductCPU(float* a, float* b, float* c, int size) {
 
 	float result = 0.0f;
 
+	double begin = timer(), end;
 	for (int i = 0; i < size; ++i) {
 		result += a[i] * b[i];
 	}
 
 	c[0] = result;
+
+	end = timer();
+	printf("dotProductCPU() executed in %lf ms.\n", end - begin);
 
 	return SUCCESS;
 }
@@ -144,6 +177,7 @@ int inverseMatrixCPU(float* m, float* I, int rows, int cols) {
 		return ERROR;
 	}
 
+	double begin = timer(), end;
 	for (int i = 0; i < rows; ++i) {
 		for (int row = 0; row < rows; ++row) {
 			for (int col = 0; col < cols; ++col) {
@@ -183,6 +217,9 @@ int inverseMatrixCPU(float* m, float* I, int rows, int cols) {
 			}
 		}
 	}
+	
+	end = timer();
+	printf("inverseMatrixCPU() executed in %lf ms.\n", end - begin);
 
 	return SUCCESS;
 }

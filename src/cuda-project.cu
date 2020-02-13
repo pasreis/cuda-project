@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <sys/time.h>
+
 #include <cuda.h>
 
 #include "cuda-project-cpu.h"
@@ -30,6 +32,12 @@
 			result);													\
 		exit(1);														\
 	} }
+
+double cpuTimer() {
+	struct timeval clock;
+	gettimeofday(&clock, NULL);
+	return ((double) clock.tv_sec + (double) clock.tv_usec * 1.e-6);
+}
 
 void makeIdentityMatrix(float* m, int n) {
 	for (int row = 0; row < n; ++row) {
@@ -239,9 +247,13 @@ int addVector(float* a, float* b, float* c, int size) {
 	int threadsPerBlock = 256;
 	int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
 
+	double begin = cpuTimer(), end;
 	doAddVector<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, size);
-
+	
 	cudaDeviceSynchronize();
+	end = cpuTimer();
+
+	printf("addVector() executed in %lf ms.\n", end - begin);
 
 	err = cudaGetLastError();
 
@@ -357,9 +369,14 @@ int subVector(float* a, float* b, float* c, int size) {
 	int threadsPerBlock = 256;
 	int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
 
+	double begin = cpuTimer(), end;
 	doSubVector<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, size);
 
 	cudaDeviceSynchronize();
+	end = cpuTimer();
+
+	printf("subVector() executed in %lf ms.\n", end - begin);
+
 
 	err = cudaGetLastError();
 
@@ -481,10 +498,13 @@ int mulMatrix(float* a, float* b, float* c, int rowsA, int colsA, int rowsB, int
 	dim3 threadsPerBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 blocksPerGrid((colsB + BLOCK_SIZE - 1) / BLOCK_SIZE, (colsA + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
+	double begin = cpuTimer(), end;
 	doMulMatrix<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, rowsA, colsA, colsB);
 
 	cudaDeviceSynchronize();
+	end = cpuTimer(); 
 
+	printf("mulMatrix() executed in %lf ms.\n", end - begin);
 	err = cudaGetLastError();
 
 	if (err != cudaSuccess) {
@@ -605,11 +625,14 @@ int addMatrix(float* a, float* b, float* c, int rows, int cols) {
 	int threadsPerBlock = 256;
 	int blocksPerGrid = ((rows * cols) + threadsPerBlock - 1) / threadsPerBlock;
 
+	double begin = cpuTimer(), end;
 	doAddVector<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, rows *  cols);
-
+	
 	err = cudaGetLastError();
 	cudaDeviceSynchronize();
+	end = cpuTimer();
 
+	printf("addMatrix executed in %lf ms.\n", end - begin);
 
 
 	if (err != cudaSuccess) {
@@ -730,12 +753,14 @@ int subMatrix(float* a, float* b, float* c, int rows, int cols) {
 	int threadsPerBlock = 256;
 	int blocksPerGrid = ((rows * cols) + threadsPerBlock - 1) / threadsPerBlock;
 
+	double begin = cpuTimer(), end;
 	doSubVector<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, rows *  cols);
 
 	err = cudaGetLastError();
 	cudaDeviceSynchronize();
+	end = cpuTimer();
 
-
+	printf("subMatrix() executed in %lf ms.\n", end - begin);
 
 	if (err != cudaSuccess) {
 		printf("ERROR: subMatrix, error when subtracting the matrices %d\n", err);
@@ -853,12 +878,14 @@ int dotProduct(float* a, float* b, float* c, int size) {
 	int threadsPerBlock = BLOCK_SIZE;
 	int blocksPerGrid = BLOCK_SIZE;
 
+	double begin = cpuTimer(), end;
 	doDotProduct<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, size);
 
 	err = cudaGetLastError();
 	cudaDeviceSynchronize();
+	end = cpuTimer();
 
-
+	printf("dotProduct() executed in %lf ms.\n", end - begin);
 
 	if (err != cudaSuccess) {
 		printf("ERROR: dotProduct, error when calculating the dot product %d\n", err);
@@ -904,6 +931,7 @@ void printMatrix(float* m, int rows, int cols) {
 		printf("\n");
 	}
 }
+
 int inverseMatrix(float* m, float* inverse, int rows, int cols) {
 	if (m == NULL || inverse == NULL || rows < 0 || cols < 0) {
 		printf("ERROR: inverseMatrix, invalid values\n");
@@ -980,6 +1008,7 @@ int inverseMatrix(float* m, float* inverse, int rows, int cols) {
 	dim3 threadsPerBlock(BLOCK_SIZE,BLOCK_SIZE);
 	dim3 blocksPerGrid((size + BLOCK_SIZE -1) / BLOCK_SIZE, (size + BLOCK_SIZE -1) / BLOCK_SIZE);
 
+	double begin = cpuTimer(), end;
 	for (int i = 0; i < size; ++i) {
 		reduceNoDiagonal<<<blocksPerGrid, threadsPerBlock>>>(d_m, d_inverse, rows, i);
 		cudaDeviceSynchronize();
@@ -990,6 +1019,10 @@ int inverseMatrix(float* m, float* inverse, int rows, int cols) {
 		makePivot<<<blocksPerGrid, threadsPerBlock>>>(d_m, d_inverse, rows, i);
 		cudaDeviceSynchronize();
 	}
+
+	end = cpuTimer();
+	
+	printf("inverseMatrix() executed in %lf ms.\n", end - begin);
 
 	err = cudaGetLastError();
 
