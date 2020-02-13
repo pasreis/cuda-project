@@ -45,7 +45,7 @@
 	
 void fillVectorRandomly(float* v, int size) {
 	for (int i = 0; i < size; ++i) {
-		v[i] = rand() / (float) (RAND_MAX / 2);
+		v[i] = rand() / (float) (RAND_MAX / 3);
 	}
 }
 
@@ -478,7 +478,7 @@ int testMulMatrix(int rowsA, int colsA, int rowsB, int colsB) {
 	if (mulMatrix(a, b, c, rowsA, colsA, rowsB, colsB, rowsC, colsC) != SUCCESS) return FAILED;
 
 	for (int i = 0; i < totalDimC; ++i) {
-		if (fabs(c_expected[i] - c[i]) > 1e-5) {
+		if (fabs(c_expected[i] - c[i]) > 1.e-3) {
 			printf("ERROR: mulMatrix, expected %f but got %f instead!\n", c_expected[i], c[i]);
 			return FAILED;
 		}
@@ -572,7 +572,6 @@ int testSubMatrix(int rows, int cols) {
 	fillVectorRandomly(b, totalDim);
 
 	subMatrixCPU(a, b, c_expected, rows, cols);
-	if (subMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
 	if (subMatrix(a, b, c, rows, cols) != SUCCESS) return FAILED;
 
 	for (int i = 0; i < totalDim; ++i) {

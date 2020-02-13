@@ -89,7 +89,7 @@ int addMatrixCPU(float* a, float* b, float* c, int rows, int cols) {
 	}
 
 	end = timer();
-	printf("addMatrixCPU() executed in %ld ms.\n", end - begin);
+	printf("addMatrixCPU() executed in %lf ms.\n", end - begin);
 
 	return SUCCESS;
 }
